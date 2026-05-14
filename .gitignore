@@ -1,0 +1,17 @@
+# Common
+.DS_Store
+*.log
+
+# Backend
+Backend/venv/
+Backend/.venv/
+Backend/__pycache__/
+Backend/.env
+Backend/*.sqlite3
+Backend/uploads/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.*
