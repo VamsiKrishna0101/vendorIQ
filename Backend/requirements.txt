@@ -39,3 +39,4 @@ sse-starlette==2.1.0
 # Authentication
 passlib[bcrypt]==1.7.4
 bcrypt==3.2.2
+python-jose[cryptography]
