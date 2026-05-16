@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import VerdictScreen from './VerdictScreen';
 import { Timer, Activity, ArrowLeft } from 'lucide-react';
 import { RoundTimeline, type Phase } from '../../components/debate/RoundTimeline';
 import { RoundTransition } from '../../components/debate/RoundTransition';
@@ -169,8 +170,14 @@ export function DebatePage() {
     // 2. Handle Phase changes
     if (data.event_type === 'phase_change') {
       const r = parseInt(data.round_number);
-      if (!isNaN(r) && r >= 0 && r < PHASES.length) {
-        setPhaseIdx(r);
+      // Backend sends round_number 1,2,3,4 (4 = moderator/synthesis)
+      // PHASES: ['document-intelligence', 'round1', 'round2', 'round3', 'adversarial', 'synthesis']
+      // Map: round 1 → idx 1 (round1), round 2 → idx 2 (round2), round 3 → idx 3 (round3)
+      // round 4 (moderator) → idx 5 (synthesis) — skip adversarial as a separate phase
+      const phaseMap: Record<number, number> = { 1: 1, 2: 2, 3: 3, 4: 5 };
+      const newIdx = phaseMap[r];
+      if (newIdx !== undefined) {
+        setPhaseIdx(newIdx);
         // Show transition animation for both live and replay (adds premium feel)
         setShowTransition(true);
         setAgentStatuses(prev => {
@@ -269,18 +276,29 @@ export function DebatePage() {
       if (agentId === 'moderator') {
         const meta = data.metadata || {};
         const parsed = meta.parsed_output || {};
-        if (parsed.final_recommendation) {
+
+        // Moderator schema: evaluations[] sorted by rank, winner = rank 1
+        const sortedEvals = [...(parsed.evaluations || [])].sort(
+          (a: any, b: any) => (a.rank ?? 99) - (b.rank ?? 99)
+        );
+        const winner = sortedEvals[0]?.vendor;
+
+        // Trigger verdict screen if we got a valid output
+        if (winner || parsed.strategic_recommendation) {
           setVerdictData({
-            winner: parsed.final_recommendation,
-            summary: parsed.executive_summary || '',
-            confidence: Math.round((parsed.decision_confidence?.score || 0) * 100),
-            dissenting_opinion: parsed.conflict_resolution?.[0]?.resolution_logic || '',
-            vendor_scores: parsed.vendor_scores || {},
-            rejected_vendors: parsed.rejected_vendors || [],
-            risk_acknowledgement: parsed.risk_acknowledgement || [],
-            risk_register: parsed.risk_register || [],
-            evaluations: parsed.evaluations || [],
-            supporting_agents: parsed.supporting_agents || 0
+            winner:                   winner || 'Unknown',
+            executive_summary:        parsed.executive_summary || '',
+            strategic_recommendation: parsed.strategic_recommendation || '',
+            // score is 0-100; debate_quality_score is 0-1
+            confidence:               sortedEvals[0]?.score
+                                        || Math.round((parsed.debate_quality_score || 0) * 100),
+            debate_quality_score:     parsed.debate_quality_score || 0,
+            minority_dissent:         parsed.minority_dissent || {},
+            risk_register:            parsed.risk_register || [],
+            evaluations:              sortedEvals,
+            governance_flags:         parsed.governance_flags || [],
+            conditions_before_signing: parsed.conditions_before_signing || [],
+            supporting_agents:        sortedEvals.length,
           });
           setTimeout(() => setShowVerdict(true), 3000);
         }
@@ -317,7 +335,7 @@ export function DebatePage() {
     : 0);
   const supportingCount = verdictData?.supporting_agents || (sortedPicks.length > 0 ? sortedPicks[0][1] : 0);
 
-  if (showVerdict && verdictData) return <VerdictScreen navigate={navigate} verdict={verdictData} />;
+  if (showVerdict && verdictData) return <VerdictScreen verdict={verdictData} />;
 
   return (
     <div className="flex flex-col h-screen bg-[#0A0A0B] overflow-hidden">
@@ -426,7 +444,7 @@ export function DebatePage() {
             {phase !== 'document-intelligence' && phase !== 'synthesis' && (
               <motion.div key="debate" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col gap-6">
                 
-                {/* Decision agents - Hide during pure adversarial/synthesis phases */}
+                {/* Decision agents */}
                 {phase.startsWith('round') && (
                   <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
                     <SectionLabel label="Decision Committee" color="#E8A930" />
@@ -445,7 +463,7 @@ export function DebatePage() {
                   </motion.div>
                 )}
 
-                {/* Customer agents - Hide during adversarial/synthesis */}
+                {/* Customer agents */}
                 {phase.startsWith('round') && (
                   <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
                     <SectionLabel label="Customer Panel" color="#16A34A" />
@@ -464,7 +482,7 @@ export function DebatePage() {
                   </motion.div>
                 )}
 
-                {/* Adversarial agents - Show during rounds AND the dedicated adversarial phase */}
+                {/* Adversarial agents — always shown in all round phases */}
                 {(phase.startsWith('round') || phase === 'adversarial') && (
                   <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
                     <SectionLabel label="Adversarial Audit" color="#DC2626" />
@@ -482,6 +500,101 @@ export function DebatePage() {
                     </div>
                   </motion.div>
                 )}
+              </motion.div>
+            )}
+
+            {/* ── Synthesis Phase — Moderator working ── */}
+            {phase === 'synthesis' && (
+              <motion.div key="synthesis" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col gap-6">
+                
+                {/* Moderator Hero Card */}
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+                  className="relative overflow-hidden rounded-2xl border p-8"
+                  style={{ background: '#111116', borderColor: agentStatuses['moderator'] === 'done' ? 'rgba(232,169,48,0.4)' : 'rgba(232,169,48,0.15)' }}>
+                  
+                  {/* Glow background */}
+                  <div className="absolute inset-0 pointer-events-none"
+                    style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(232,169,48,0.04) 0%, transparent 70%)' }} />
+
+                  <div className="relative flex items-start gap-6">
+                    {/* Avatar */}
+                    <motion.div
+                      className="w-16 h-16 rounded-2xl flex items-center justify-center text-[22px] font-black flex-shrink-0"
+                      style={{ background: '#2A1800', color: '#E8A930' }}
+                      animate={agentStatuses['moderator'] !== 'done' ? { scale: [1, 1.05, 1] } : { scale: 1 }}
+                      transition={{ duration: 2, repeat: agentStatuses['moderator'] !== 'done' ? Infinity : 0 }}
+                    >
+                      MO
+                    </motion.div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-1">
+                        <span className="text-[20px] font-bold text-[#F0F0F0]">AI Moderator</span>
+                        {agentStatuses['moderator'] === 'done' ? (
+                          <span className="text-[12px] font-bold px-3 py-1 rounded-full bg-[#16A34A]/10 text-[#16A34A] border border-[#16A34A]/30">
+                            ✓ Synthesis Complete
+                          </span>
+                        ) : (
+                          <motion.span
+                            className="text-[12px] font-bold px-3 py-1 rounded-full bg-[#E8A930]/10 text-[#E8A930] border border-[#E8A930]/30"
+                            animate={{ opacity: [1, 0.5, 1] }}
+                            transition={{ duration: 1.4, repeat: Infinity }}
+                          >
+                            ◌ Synthesizing All Evidence...
+                          </motion.span>
+                        )}
+                      </div>
+                      <div className="text-[12px] text-[#6B6B72] mb-4">
+                        Final Verdict Synthesis — Weighing all committee arguments, bias scores, and adversarial challenges
+                      </div>
+
+                      {/* Streaming output */}
+                      <div className="bg-[#0D0D0F] rounded-xl p-5 border border-[#1E1E22] min-h-[100px] max-h-[260px] overflow-y-auto text-[12px] font-mono text-[#A0A0A8] leading-relaxed">
+                        {!streamTexts['moderator'] ? (
+                          <motion.span className="text-[#E8A930]/60" animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 1.2, repeat: Infinity }}>
+                            Awaiting moderator synthesis...
+                          </motion.span>
+                        ) : (
+                          <span>{streamTexts['moderator'].slice(0, 800)}{(streamTexts['moderator']?.length ?? 0) > 800 ? '…' : ''}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Show previous round results for context */}
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+                  <SectionLabel label="Committee Positions (Final Round)" color="#4B4B60" />
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
+                    {decisionAgents.map((a, i) => (
+                      <AgentCardCompact
+                        key={a.id} agent={a as any}
+                        streamText={streamTexts[a.id]}
+                        biasScore={biasScores[a.id] ?? 50}
+                        status={'done'}
+                        isActive={false}
+                        delay={i * 0.04}
+                      />
+                    ))}
+                  </div>
+                </motion.div>
+
+                {/* Adversarial final state */}
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+                  <SectionLabel label="Adversarial Final Verdicts" color="#DC2626" />
+                  <div className="grid grid-cols-3 gap-3 mt-3">
+                    {adversarialAgents.map((a, i) => (
+                      <AgentCardCompact
+                        key={a.id} agent={a as any}
+                        streamText={streamTexts[a.id]}
+                        biasScore={biasScores[a.id] ?? 50}
+                        status={'done'}
+                        isActive={false}
+                        delay={0.1 + i * 0.06}
+                      />
+                    ))}
+                  </div>
+                </motion.div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -516,221 +629,15 @@ export function DebatePage() {
   );
 }
 
-function VerdictScreen({ navigate, verdict }: { navigate: ReturnType<typeof useNavigate>, verdict: any }) {
-  // Use evaluations array from new schema
-  const evaluations = verdict.evaluations || [];
-  
-  const statusColor: Record<string, string> = {
-    'Recommended': '#16A34A',
-    'Strong Alternative': '#E8A930',
-    'Not Recommended': '#EF4444',
-  };
 
-  return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.7 }}
-      className="min-h-screen bg-[#0A0A0B] overflow-y-auto pb-20">
-      
-      <div className="fixed inset-0 pointer-events-none flex items-center justify-center">
-        <div className="w-[1000px] h-[600px] rounded-full opacity-20"
-          style={{ background: 'radial-gradient(ellipse, rgba(232,169,48,0.1) 0%, transparent 75%)' }} />
-      </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-8">
-        {/* Top Header */}
-        <div className="py-12 border-b border-[#1E1E22] mb-12">
-          <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }}>
-            <div className="flex items-center justify-between items-end mb-6">
-              <div>
-                <h1 className="text-[42px] font-bold text-[#F0F0F0] tracking-tight leading-none mb-4">Strategic Ranking Report</h1>
-                <div className="flex items-center gap-3">
-                  <div className="h-1 w-20 bg-[#E8A930]" />
-                  <p className="text-[14px] font-medium text-[#6B6B72] tracking-widest uppercase">Vendor Selection Intelligence</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-[11px] text-[#6B6B72] uppercase tracking-[0.2em] mb-1">Recommendation Status</p>
-                <p className="text-[24px] font-bold text-[#16A34A]">{verdict.strategic_recommendation?.split(' ')[0]} Preferred</p>
-              </div>
-            </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-12 bg-[#111113] border border-[#1E1E22] rounded-2xl p-8">
-              <div className="lg:col-span-2">
-                <h3 className="text-[11px] font-bold text-[#E8A930] uppercase tracking-widest mb-3">Executive Rationale</h3>
-                <p className="text-[16px] text-[#F0F0F0] leading-relaxed font-light">
-                  {verdict.executive_summary}
-                </p>
-              </div>
-              <div className="border-l border-[#1E1E22] pl-8">
-                <h3 className="text-[11px] font-bold text-[#6B6B72] uppercase tracking-widest mb-3">Primary Directive</h3>
-                <p className="text-[15px] text-[#E8A930] leading-relaxed italic">
-                  "{verdict.strategic_recommendation}"
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        </div>
 
-        {/* Detailed Rankings */}
-        <div className="flex flex-col gap-10">
-          {evaluations.map((v: any, i: number) => {
-            const color = statusColor[v.status] || '#6B6B72';
-            const isTop = v.rank === 1;
 
-            return (
-              <motion.div key={v.vendor}
-                initial={{ opacity: 0, y: 40 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 + i * 0.2 }}
-                className={`relative overflow-hidden bg-[#111113] border rounded-[2rem] transition-all duration-500 hover:border-[#E8A930]/40 ${isTop ? 'border-[#E8A930]/30 shadow-[0_20px_80px_rgba(232,169,48,0.05)]' : 'border-[#1E1E22]'}`}>
-                
-                {/* Background Rank Number */}
-                <div className="absolute top-[-20px] right-[-20px] text-[180px] font-black text-white/[0.02] select-none pointer-events-none">
-                  {v.rank}
-                </div>
 
-                <div className="p-10">
-                  <div className="flex flex-col lg:flex-row gap-10">
-                    {/* Left: Identity & Justification */}
-                    <div className="flex-1">
-                      <div className="flex items-center gap-4 mb-6">
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-[24px] font-black ${isTop ? 'bg-[#E8A930] text-[#0D0D0F]' : 'bg-[#1E1E22] text-[#F0F0F0]'}`}>
-                          {v.rank}
-                        </div>
-                        <div>
-                          <h2 className="text-[32px] font-bold text-[#F0F0F0] tracking-tight">{v.vendor}</h2>
-                          <div className="flex items-center gap-3 mt-1">
-                             <span className="text-[12px] font-bold tracking-widest uppercase px-3 py-1 rounded-full border" 
-                                   style={{ color, background: `${color}10`, borderColor: `${color}30` }}>
-                               {v.status}
-                             </span>
-                             <span className="text-[14px] text-[#6B6B72]">Confidence Score: <b className="text-[#F0F0F0]">{v.score}%</b></span>
-                          </div>
-                        </div>
-                      </div>
 
-                      <p className="text-[16px] text-[#A0A0A8] leading-relaxed mb-8">
-                        {v.justification}
-                      </p>
 
-                      <div className="grid grid-cols-2 gap-8">
-                        <div>
-                          <h4 className="text-[10px] font-bold text-[#16A34A] uppercase tracking-widest mb-4 flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#16A34A]" /> Strategic Advantages
-                          </h4>
-                          <ul className="space-y-3">
-                            {v.pros?.map((p: string, pi: number) => (
-                              <li key={pi} className="text-[13px] text-[#F0F0F0] flex items-start gap-2">
-                                <span className="text-[#16A34A] mt-0.5">✓</span> {p}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                        <div>
-                          <h4 className="text-[10px] font-bold text-[#EF4444] uppercase tracking-widest mb-4 flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#EF4444]" /> Residual Risks
-                          </h4>
-                          <ul className="space-y-3">
-                            {v.cons?.map((c: string, ci: number) => (
-                              <li key={ci} className="text-[13px] text-[#F0F0F0] flex items-start gap-2">
-                                <span className="text-[#EF4444] mt-0.5">!</span> {c}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
 
-                    {/* Right: Fit Analysis Visualization */}
-                    <div className="w-full lg:w-[320px] bg-[#0D0D0F] rounded-3xl p-8 border border-[#1E1E22]/50">
-                      <h4 className="text-[11px] font-bold text-[#6B6B72] uppercase tracking-widest mb-8 text-center">Fit Analysis Matrix</h4>
-                      
-                      <div className="space-y-8">
-                        {Object.entries(v.fit_analysis || {}).map(([key, val]: [string, any]) => (
-                          <div key={key}>
-                            <div className="flex justify-between text-[11px] uppercase tracking-wider mb-2">
-                              <span className="text-[#6B6B72]">{key}</span>
-                              <span className="text-[#F0F0F0] font-bold">{val}%</span>
-                            </div>
-                            <div className="h-1.5 bg-[#1A1A1E] rounded-full overflow-hidden">
-                              <motion.div 
-                                initial={{ width: 0 }} animate={{ width: `${val}%` }} 
-                                transition={{ duration: 1, delay: 0.8 }}
-                                className="h-full rounded-full"
-                                style={{ background: isTop ? '#E8A930' : '#4B4B50' }}
-                              />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="mt-10 pt-8 border-t border-[#1E1E22] text-center">
-                         <div className="text-[28px] font-black text-[#F0F0F0]">{v.score}</div>
-                         <div className="text-[10px] text-[#6B6B72] uppercase tracking-[0.2em]">Aggregate Fit Score</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
-
-        {/* Global Risks & Dissent */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-20">
-           <div className="lg:col-span-2">
-              <h2 className="text-[14px] font-bold text-[#F0F0F0] uppercase tracking-widest mb-6">Enterprise Risk Register</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 {verdict.risk_register?.map((r: any, i: number) => (
-                    <div key={i} className="bg-[#111113] border border-[#1E1E22] p-5 rounded-2xl">
-                       <div className="flex items-center gap-2 mb-3">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                             r.severity === 'HIGH' ? 'bg-[#EF4444]/10 text-[#EF4444]' : 
-                             r.severity === 'MEDIUM' ? 'bg-[#E8A930]/10 text-[#E8A930]' : 
-                             'bg-[#16A34A]/10 text-[#16A34A]'
-                          }`}>{r.severity}</span>
-                          <span className="text-[12px] font-bold text-[#F0F0F0]">{r.risk}</span>
-                       </div>
-                       <p className="text-[12px] text-[#6B6B72]">Mitigation: <span className="text-[#A0A0A8]">{r.mitigation}</span></p>
-                    </div>
-                 ))}
-              </div>
-           </div>
-
-           <div>
-              <h2 className="text-[14px] font-bold text-[#F0F0F0] uppercase tracking-widest mb-6">Strategic Dissent</h2>
-              <div className="bg-[#1A1A1E] border border-[#E8A930]/20 p-6 rounded-2xl relative overflow-hidden">
-                 <div className="absolute top-0 right-0 p-4 opacity-5">
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                 </div>
-                 <h4 className="text-[11px] font-bold text-[#E8A930] uppercase tracking-widest mb-2">
-                    {verdict.minority_dissent?.agent?.replace('_', ' ')} Position
-                 </h4>
-                 <p className="text-[13px] text-[#F0F0F0] italic mb-4 leading-relaxed">
-                    "{verdict.minority_dissent?.argument}"
-                 </p>
-                 <div className="pt-4 border-t border-[#1E1E22]">
-                    <p className="text-[11px] text-[#6B6B72] uppercase mb-1">Mitigation Plan</p>
-                    <p className="text-[12px] text-[#A0A0A8]">{verdict.minority_dissent?.mitigation_plan}</p>
-                 </div>
-              </div>
-           </div>
-        </div>
-
-        {/* Footer actions */}
-        <div className="mt-20 flex justify-center gap-6">
-           <button onClick={() => navigate('/generate')} 
-                   className="px-10 py-4 bg-transparent border border-[#1E1E22] text-[#6B6B72] rounded-full hover:text-[#F0F0F0] hover:border-[#F0F0F0] transition-all">
-              New Simulation
-           </button>
-           <button onClick={() => window.print()}
-                   className="px-10 py-4 bg-[#F0F0F0] text-[#0A0A0B] font-bold rounded-full hover:bg-white transition-all shadow-[0_0_30px_rgba(240,240,240,0.2)]">
-              Export PDF Report
-           </button>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
 
 
 function SectionLabel({ label, color }: { label: string; color: string }) {

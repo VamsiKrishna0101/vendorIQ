@@ -29,7 +29,8 @@ def make_customer_node(agent_id: str, round_number: int):
             return {"errors": [error_msg]}
 
         # Dynamic Routing: Round 3 gets the high-reasoning 'Pro' model
-        model_name = "gemini-1.5-pro" if round_number >= 3 else "gemini-2.5-flash-lite"
+        # User requested gemini-2.0-flash-lite for all for now
+        model_name = "gemini-2.5-flash-lite"
         agent = _get_agent(model_name=model_name)
         db = SessionLocal()
         sequence = 0

@@ -1,5 +1,5 @@
 from services.gemini_service import GeminiService
-gemini = GeminiService()
+gemini = GeminiService(model_name="gemini-2.5-pro")
 
 # TEXT TEST
 

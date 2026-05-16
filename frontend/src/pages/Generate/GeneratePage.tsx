@@ -15,6 +15,14 @@ export function GeneratePage() {
   const [customerPanel, setCustomerPanel] = useState(true);
   const [adversarialAudit, setAdversarialAudit] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [buyerContext, setBuyerContext] = useState({
+    companyName: '',
+    industry: 'Technology',
+    size: '500-5000',
+    techStack: '',
+    keyRequirements: '',
+    region: 'Global'
+  });
 
   const canStart = files.length > 0 && vendors.trim().length > 0;
 
@@ -71,7 +79,8 @@ export function GeneratePage() {
       // 2. Start debate
       const startRes = await api.post('/debate/start', {
         file_paths: filePaths,
-        vendor_names: vendorList
+        vendor_names: vendorList,
+        buyer_context: buyerContext
       });
 
       // 3. Navigate to debate UI
@@ -157,6 +166,84 @@ export function GeneratePage() {
                   <InfoBadge label="Evaluation Mode" value="Vendor Selection" />
                   <InfoBadge label="Debate Rounds" value="4 Rounds" />
                 </div>
+              </div>
+            </SectionCard>
+
+            {/* Buying Organization */}
+            <SectionCard title="Buying Organization" icon={<Users size={14} />}>
+              <div className="flex flex-col gap-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <Field label="Company Name">
+                    <input
+                      value={buyerContext.companyName}
+                      onChange={e => setBuyerContext({...buyerContext, companyName: e.target.value})}
+                      placeholder="e.g. BMW Group"
+                      className="input-field"
+                    />
+                  </Field>
+                  <Field label="Industry">
+                    <select
+                      value={buyerContext.industry}
+                      onChange={e => setBuyerContext({...buyerContext, industry: e.target.value})}
+                      className="input-field appearance-none cursor-pointer"
+                    >
+                      <option>Technology</option>
+                      <option>Manufacturing</option>
+                      <option>Financial Services</option>
+                      <option>Healthcare</option>
+                      <option>Retail</option>
+                      <option>Logistics</option>
+                      <option>Government</option>
+                      <option>Other</option>
+                    </select>
+                  </Field>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <Field label="Company Size">
+                    <select
+                      value={buyerContext.size}
+                      onChange={e => setBuyerContext({...buyerContext, size: e.target.value})}
+                      className="input-field appearance-none cursor-pointer"
+                    >
+                      <option>1-500</option>
+                      <option>500-5000</option>
+                      <option>5000-50000</option>
+                      <option>50000+</option>
+                    </select>
+                  </Field>
+                  <Field label="Regulatory Region">
+                    <select
+                      value={buyerContext.region}
+                      onChange={e => setBuyerContext({...buyerContext, region: e.target.value})}
+                      className="input-field appearance-none cursor-pointer"
+                    >
+                      <option>Global</option>
+                      <option>US</option>
+                      <option>EU/Germany</option>
+                      <option>UK</option>
+                      <option>APAC</option>
+                    </select>
+                  </Field>
+                </div>
+
+                <Field label="Current Tech Stack">
+                  <input
+                    value={buyerContext.techStack}
+                    onChange={e => setBuyerContext({...buyerContext, techStack: e.target.value})}
+                    placeholder="e.g. SAP ERP, Microsoft 365, Salesforce"
+                    className="input-field"
+                  />
+                </Field>
+
+                <Field label="Key Requirements">
+                  <textarea
+                    value={buyerContext.keyRequirements}
+                    onChange={e => setBuyerContext({...buyerContext, keyRequirements: e.target.value})}
+                    placeholder="e.g. Must be GDPR compliant, integrate with SAP, under €500K/year"
+                    className="input-field min-h-[80px] py-3 resize-none"
+                  />
+                </Field>
               </div>
             </SectionCard>
 

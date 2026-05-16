@@ -24,6 +24,7 @@ async def start_debate(
     file_paths: list[str], 
     vendor_names: list[str],
     background_tasks: BackgroundTasks,
+    buyer_context: dict = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -41,7 +42,8 @@ async def start_debate(
         session_id=session_id,
         user_id=current_user.id,
         status="running",
-        vendor_names=vendor_names
+        vendor_names=vendor_names,
+        buyer_context=buyer_context
     )
     db.add(new_session)
     db.commit()
@@ -55,6 +57,7 @@ async def start_debate(
         "status": "running",
         "file_paths": file_paths,
         "vendor_names": vendor_names,
+        "buyer_context": buyer_context,
         "intelligence": {},
         "rounds": {},
         "customer": {},
@@ -149,44 +152,30 @@ async def replay_debate(
     if not events:
         raise HTTPException(status_code=404, detail="No events found for this session")
 
-    # Only replay meaningful events — skip raw chunk tokens
+    # Include chunks so streaming text is visible during replay
     REPLAY_EVENT_TYPES = {
-        "agent_started", "agent_thinking", "agent_completed",
+        "agent_started", "agent_thinking", "agent_chunk", "agent_completed",
         "analyst_started", "analyst_completed",
         "phase_change", "debate_completed", "error"
     }
 
-    # Filter to meaningful events only, sorted by round then sequence
+    # Sort events so phase_change fires FIRST within its round group,
+    # then by sequence number. phase_change uses seq=9900+ which would
+    # normally sort it LAST — we override that with sort_key=-1.
+    def sort_key(e):
+        round_num = e.round_number or 0
+        if e.event_type == "phase_change":
+            return (round_num, -1)   # fires before any agent events in this round
+        return (round_num, e.sequence_num or 0)
+
     meaningful = sorted(
         [e for e in events if e.event_type in REPLAY_EVENT_TYPES],
-        key=lambda e: (e.round_number or 0, e.sequence_num or 0)
+        key=sort_key
     )
 
     async def replay_generator():
-        last_round = None
-        # Track which rounds already have a real phase_change in DB
-        rounds_with_phase_change = {
-            e.round_number for e in meaningful if e.event_type == "phase_change"
-        }
-
         for evt in meaningful:
-            current_round = evt.round_number
-
-            # ── Auto-inject phase_change when round transitions ──
-            # Only inject if this round doesn't already have a real phase_change in DB
-            if current_round != last_round and current_round is not None:
-                if current_round >= 1 and current_round not in rounds_with_phase_change:
-                    phase_evt = {
-                        "event_type": "phase_change",
-                        "agent_id": "system",
-                        "agent_type": "system",
-                        "round_number": current_round,
-                    }
-                    yield f"data: {json.dumps(phase_evt)}\n\n"
-                    await asyncio.sleep(3.0)  # pause so UI transition finishes
-                last_round = current_round
-
-            # Skip real phase_change events from DB (already handled above or emit them)
+            # ── Phase change: pause so UI transition finishes before agents start ──
             if evt.event_type == "phase_change":
                 phase_evt = {
                     "event_type": "phase_change",
@@ -195,21 +184,10 @@ async def replay_debate(
                     "round_number": evt.round_number,
                 }
                 yield f"data: {json.dumps(phase_evt)}\n\n"
-                await asyncio.sleep(3.0)
+                await asyncio.sleep(2.5 / speed)  # let transition animation play
                 continue
 
-            # ── For agent_completed, first emit a synthetic agent_started ──
-            if evt.event_type == "agent_completed":
-                started_evt = {
-                    "event_type": "agent_started",
-                    "agent_id": evt.agent_id,
-                    "agent_type": evt.agent_type,
-                    "round_number": evt.round_number,
-                }
-                yield f"data: {json.dumps(started_evt)}\n\n"
-                await asyncio.sleep(0.25)  # brief thinking state
-
-            # ── Main event ──
+            # ── Build event dict ──
             event_dict = {
                 "event_type": evt.event_type,
                 "agent_id": evt.agent_id,
@@ -222,12 +200,20 @@ async def replay_debate(
                 event_dict["metadata"] = evt.metadata_col
 
             yield f"data: {json.dumps(event_dict)}\n\n"
-            await asyncio.sleep(0.3)
+
+            # Delay varies by event type for natural pacing
+            if evt.event_type == "agent_completed":
+                await asyncio.sleep(0.6 / speed)   # pause after completion
+            elif evt.event_type == "agent_chunk":
+                await asyncio.sleep(0.08 / speed)  # fast chunk streaming
+            else:
+                await asyncio.sleep(0.25 / speed)
 
         yield f"data: {json.dumps({'event_type': 'debate_completed'})}\n\n"
 
 
     return StreamingResponse(replay_generator(), media_type="text/event-stream")
+
 
 @router.get("/list")
 async def list_debates(

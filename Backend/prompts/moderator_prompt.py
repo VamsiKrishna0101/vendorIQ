@@ -1,3 +1,5 @@
+from prompts.context_builder import build_buyer_context_block
+
 def build_moderator_prompt(debate_memory: dict) -> str:
 
     vendor_names = debate_memory.get("vendor_names", [])
@@ -532,7 +534,8 @@ Use REAL vendor names from: {vendor_list_str}
         "technical":   0,
         "financial":   0,
         "governance":  0
-      }}
+      }},
+      "buyer_fit_summary": "How well this vendor fits specifically for the buyer's company and industry"
     }}
   ],
 
@@ -581,6 +584,7 @@ STRICT OUTPUT RULES:
         identity_block
         + behavior_block
         + context_block
+        + build_buyer_context_block(debate_memory.get('buyer_context', {}))
         + decision_block
         + customer_block
         + adversarial_block

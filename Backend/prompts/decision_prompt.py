@@ -1,5 +1,8 @@
 # ──────────────────────────────────────────────────────────────
-# AGENT PERSONA CONFIG
+import json
+from prompts.context_builder import build_buyer_context_block
+
+# ──────────────────────────────────────────────────────────────
 # ──────────────────────────────────────────────────────────────
 DECISION_AGENTS = {
     "cfo": {
@@ -315,9 +318,13 @@ Conceded To You:        {opp_r2.get('concession', '')}
 """
 
         customer = debate_memory.get("customer", {})
-        bias_score = debate_memory.get(
-            "bias_scores", {}
-        ).get(agent_id, 0)
+        bias_raw = debate_memory.get("bias_scores", {}).get(agent_id, 0)
+        if isinstance(bias_raw, dict):
+            # Extract latest score
+            round_keys = sorted(bias_raw.keys(), key=lambda x: int(str(x)) if str(x).isdigit() else 0)
+            bias_score = bias_raw[round_keys[-1]] if round_keys else 0
+        else:
+            bias_score = bias_raw
 
         memory_block += f"""
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -416,7 +423,7 @@ CRITICAL RULES:
 - This is board-level final justification
 - Be accountable — own your recommendation
 - No hedging — be decisive and clear
-- Your bias score is {debate_memory.get('bias_scores', {}).get(agent_id, 0)}%
+- Your bias score is {bias_score}%
   Address it directly in your response
 """
 
@@ -523,6 +530,7 @@ STRICT OUTPUT RULES:
     return (
         identity_block
         + context_block
+        + build_buyer_context_block(debate_memory.get('buyer_context', {}))
         + intel_block
         + memory_block
         + task_block

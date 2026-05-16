@@ -103,8 +103,13 @@ export function AgentCardCompact({
         className="text-[11px] leading-relaxed text-[#A0A0A8] bg-[#0D0D0F] rounded-lg p-3 min-h-[72px] max-h-[120px] overflow-y-auto border border-[#1A1A1E]"
         style={{ scrollbarWidth: 'thin', fontFamily: 'inherit' }}
       >
-        {status === 'idle' && (
+        {/* idle with no content yet */}
+        {status === 'idle' && !streamText && (
           <span className="opacity-40 italic">Waiting for round to begin...</span>
+        )}
+        {/* idle but has content from previous completion — keep showing it */}
+        {status === 'idle' && streamText && (
+          <span className="opacity-70">{streamText.slice(0, 280)}{streamText.length > 280 ? '…' : ''}</span>
         )}
         {status === 'thinking' && !streamText && (
           <motion.span

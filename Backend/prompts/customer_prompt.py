@@ -1,5 +1,5 @@
 from Agents.customer_agents import CUSTOMER_AGENTS
-
+from prompts.context_builder import build_buyer_context_block
 
 def build_customer_prompt(
     agent_id: str,
@@ -493,6 +493,7 @@ STRICT OUTPUT RULES:
         identity_block
         + behavior_block
         + context_block
+        + build_buyer_context_block(debate_memory.get('buyer_context', {}))
         + intel_block
         + experience_filter
         + task_block
@@ -501,6 +502,7 @@ STRICT OUTPUT RULES:
     )
 
 
+# ──────────────────────────────────────────────────────────────
 # ══════════════════════════════════════════════════
 # HELPER FUNCTIONS
 # ══════════════════════════════════════════════════

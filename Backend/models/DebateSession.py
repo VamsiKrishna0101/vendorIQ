@@ -1,4 +1,5 @@
-from sqlalchemy import Column, String, JSON, DateTime, Integer, ForeignKey
+from sqlalchemy import Column, String, DateTime, ForeignKey
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import declarative_base
 from datetime import datetime
 
@@ -14,7 +15,8 @@ class DebateSession(Base):
     session_id   = Column(String, primary_key=True)
     user_id      = Column(String, ForeignKey("users.id"), nullable=False)
     status       = Column(String(50), nullable=False, default="pending") 
-    vendor_names = Column(JSON, nullable=False) # e.g. ["AWS", "GCP", "Azure"]
+    vendor_names = Column(JSONB, nullable=False) # e.g. ["AWS", "GCP", "Azure"]
+    buyer_context = Column(JSONB, nullable=True) # Industry, size, requirements, etc.
     
     created_at   = Column(DateTime, default=datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)

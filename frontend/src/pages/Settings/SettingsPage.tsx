@@ -1,18 +1,51 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Save, Activity } from 'lucide-react';
+import { Save, Activity, Loader2 } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../components/common/Toast';
+import api from '../../api';
 
 export function SettingsPage() {
-  const [name, setName] = useState('John Doe');
-  const [email, setEmail] = useState('john.doe@enterprise.com');
-  const [role, setRole] = useState('Administrator');
+  const { user, token, login } = useAuth();
+  const { success, error } = useToast();
+
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [role, setRole] = useState('');
   const [rounds, setRounds] = useState(3);
   const [streamSpeed, setStreamSpeed] = useState(18);
+  const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  useEffect(() => {
+    if (user) {
+      setName(user.name);
+      setEmail(user.email);
+      setRole(user.role);
+    }
+  }, [user]);
+
+  const handleSave = async () => {
+    setLoading(true);
+    try {
+      const res = await api.put('/auth/profile', {
+        name,
+        email,
+        role
+      });
+
+      if (token) {
+        login(token, res.data);
+      }
+      
+      success('Profile Updated', 'Your settings have been successfully saved to the database.');
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err: any) {
+      error('Update Failed', err.response?.data?.detail || 'Could not update profile information.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -39,9 +72,11 @@ export function SettingsPage() {
               <input value={role} onChange={e => setRole(e.target.value)}
                 className="input-style" />
             </Field>
-            <button onClick={handleSave}
-              className="flex items-center gap-2 self-start bg-[#E8A930] text-[#0A0A0B] font-semibold px-5 py-2.5 rounded-lg text-[13px] transition-all hover:opacity-90">
-              <Save size={14} />
+            <button 
+              onClick={handleSave}
+              disabled={loading}
+              className="flex items-center gap-2 self-start bg-[#E8A930] text-[#0A0A0B] font-semibold px-5 py-2.5 rounded-lg text-[13px] transition-all hover:opacity-90 disabled:opacity-50 cursor-pointer">
+              {loading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
               {saved ? 'Saved!' : 'Save Changes'}
             </button>
           </div>

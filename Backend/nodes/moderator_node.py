@@ -16,7 +16,7 @@ from utils.db import SessionLocal
 from models.DebateEvent import DebateEvent
 
 
-def _get_agent(model_name: str = "gemini-1.5-pro") -> ModeratorAgent:
+def _get_agent(model_name: str = "gemini-2.5-pro") -> ModeratorAgent:
     gemini = GeminiService(model_name=model_name)
     return ModeratorAgent(gemini_service=gemini)
 

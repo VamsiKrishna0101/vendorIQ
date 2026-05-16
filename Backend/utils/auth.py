@@ -12,7 +12,7 @@ from models.User import User
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # JWT config
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "b3d9d30009c9162c9381c629fb8fcfd8c7c7f3e823f66a2cb1e3450cc7d235c5") # fallback for local dev
+SECRET_KEY = os.getenv("JWT_SECRET_KEY") 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7 # 1 week
 

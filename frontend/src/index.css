@@ -23,9 +23,12 @@
   --font-family-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-family-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
 
-  --radius-card: 8px;
-  --radius-input: 6px;
-  --radius-badge: 4px;
+  --radius-card: 12px;
+  --radius-input: 10px;
+  --radius-badge: 6px;
+
+  --glass-bg: rgba(17, 17, 19, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.05);
 }
 
 @layer base {
@@ -105,6 +108,29 @@
   .dot-grid {
     background-image: radial-gradient(circle, #1E1E22 1px, transparent 1px);
     background-size: 24px 24px;
+  }
+
+  .glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+  }
+
+  .text-gradient-gold {
+    background: linear-gradient(135deg, #F0F0F0 0%, #E8A930 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .split-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 1024px) {
+    .split-layout {
+      grid-template-columns: 1.2fr 0.8fr;
+    }
   }
 }
 

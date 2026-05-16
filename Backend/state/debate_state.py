@@ -86,6 +86,7 @@ class DebateState(TypedDict, total=False):
     # ------------------------------------------------
     file_paths: List[str]
     vendor_names: List[str]
+    buyer_context: Optional[Dict[str, Any]]
 
     # ------------------------------------------------
     # ROUND 0 INTELLIGENCE (Sequential)

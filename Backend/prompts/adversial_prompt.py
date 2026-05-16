@@ -1,4 +1,5 @@
 from Agents.adversial_agents import ADVERSARIAL_AGENTS
+from prompts.context_builder import build_buyer_context_block
 
 
 def build_adversarial_prompt(
@@ -647,6 +648,7 @@ STRICT OUTPUT RULES:
         + behavior_block
         + framework_block
         + context_block
+        + build_buyer_context_block(debate_memory.get('buyer_context', {}))
         + intel_block
         + debate_block
         + bias_block

@@ -15,7 +15,7 @@ from utils.db import SessionLocal
 from models.DebateEvent import DebateEvent
 
 
-def _get_agent(model_name: str = "gemini-1.5-pro") -> AdversarialAgent:
+def _get_agent(model_name: str = "gemini-2.5-flash-lite") -> AdversarialAgent:
     gemini = GeminiService(model_name=model_name)
     return AdversarialAgent(gemini_service=gemini)
 
