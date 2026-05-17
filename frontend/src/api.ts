@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create an Axios instance
 const api = axios.create({
-  baseURL: 'https://vendoriq-55658924621.us-west2.run.app',
+  baseURL: 'https://vendoriq-55658924621.europe-west8.run.app',
   headers: {
     'Content-Type': 'application/json',
   },

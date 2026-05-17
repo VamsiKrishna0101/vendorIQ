@@ -13,7 +13,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://vendoriq-55658924621.us-west2.run.app',
+        target: 'https://vendoriq-55658924621.europe-west8.run.app',
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/api/, ''),
       },

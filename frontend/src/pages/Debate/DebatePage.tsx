@@ -102,8 +102,8 @@ export function DebatePage() {
 
     // Choose endpoint based on mode
     const url = isReplay
-      ? `https://vendoriq-55658924621.us-west2.run.app/debate/replay/${active_id}`   // replay: no token needed, instant dump
-      : `https://vendoriq-55658924621.us-west2.run.app/debate/stream/${active_id}?token=${token}`; // live stream
+      ? `https://vendoriq-55658924621.europe-west8.run.app/debate/replay/${active_id}`   // replay: no token needed, instant dump
+      : `https://vendoriq-55658924621.europe-west8.run.app/debate/stream/${active_id}?token=${token}`; // live stream
 
     const sse = new EventSource(url);
     eventSourceRef.current = sse;
