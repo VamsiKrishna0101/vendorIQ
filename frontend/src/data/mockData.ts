@@ -8,6 +8,7 @@ export interface Agent {
   initials: string;
   personality: string;
   icon?: string;
+  avatar?: string;
 }
 
 export interface DebateSession {

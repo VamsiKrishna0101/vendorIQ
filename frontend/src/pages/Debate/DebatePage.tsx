@@ -11,26 +11,41 @@ import { StreamingText } from '../../components/common';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../api';
 
+// Avatars
+import cfoImg from '../../assets/cfo.png';
+import ctoImg from '../../assets/It_director.png';
+import legalImg from '../../assets/legal_advisor.png';
+import opsImg from '../../assets/operations.png';
+import archImg from '../../assets/enterprise_architect.png';
+import procImg from '../../assets/procurment_head.png';
+import digitalImg from '../../assets/digital_transformation_lead.png';
+import posCustImg from '../../assets/positive_customer.png';
+import negCustImg from '../../assets/negative_customer.png';
+import neutCustImg from '../../assets/neutral_customer.png';
+import devilsImg from '../../assets/devils_advocate.png';
+import biasImg from '../../assets/bias_detector.png';
+import govImg from '../../assets/governance_auditor.png';
+
 // For the UI, we still want to structure agents logically.
 // The backend assigns IDs based on our graph structure.
 // We'll define the expected agents here to map incoming data.
 const EXPECTED_AGENTS = [
   // Decision — IDs must match backend graph exactly
-  { id: 'cfo',            name: 'Chief Financial Officer',    group: 'decision',    initials: 'FI', role: 'Financial Strategy',       personality: 'Pragmatic & ROI-focused' },
-  { id: 'cto',            name: 'Chief Technology Officer',   group: 'decision',    initials: 'TE', role: 'Technical Architecture',     personality: 'Innovative & Scalable' },
-  { id: 'legal',          name: 'General Counsel',            group: 'decision',    initials: 'LE', role: 'Risk & Compliance',          personality: 'Cautious & Protective' },
-  { id: 'operations',     name: 'VP of Operations',           group: 'decision',    initials: 'OP', role: 'Execution',                  personality: 'Efficiency-driven' },
-  { id: 'enterprise_arch',name: 'Chief Architect',            group: 'decision',    initials: 'AR', role: 'System Design',              personality: 'Standards-focused' },
-  { id: 'procurement',    name: 'Head of Procurement',        group: 'decision',    initials: 'PR', role: 'Vendor Relations',           personality: 'Negotiator' },
-  { id: 'digital_lead',   name: 'CDO',                        group: 'decision',    initials: 'DI', role: 'Digital Transformation',     personality: 'Forward-looking' },
+  { id: 'cfo',            name: 'Chief Financial Officer',    group: 'decision',    initials: 'FI', role: 'Financial Strategy',       personality: 'Pragmatic & ROI-focused', avatar: cfoImg },
+  { id: 'cto',            name: 'Chief Technology Officer',   group: 'decision',    initials: 'TE', role: 'Technical Architecture',     personality: 'Innovative & Scalable', avatar: ctoImg },
+  { id: 'legal',          name: 'General Counsel',            group: 'decision',    initials: 'LE', role: 'Risk & Compliance',          personality: 'Cautious & Protective', avatar: legalImg },
+  { id: 'operations',     name: 'VP of Operations',           group: 'decision',    initials: 'OP', role: 'Execution',                  personality: 'Efficiency-driven', avatar: opsImg },
+  { id: 'enterprise_arch',name: 'Chief Architect',            group: 'decision',    initials: 'AR', role: 'System Design',              personality: 'Standards-focused', avatar: archImg },
+  { id: 'procurement',    name: 'Head of Procurement',        group: 'decision',    initials: 'PR', role: 'Vendor Relations',           personality: 'Negotiator', avatar: procImg },
+  { id: 'digital_lead',   name: 'CDO',                        group: 'decision',    initials: 'DI', role: 'Digital Transformation',     personality: 'Forward-looking', avatar: digitalImg },
   // Customer
-  { id: 'positive_rep',   name: 'Champion User',              group: 'customer',    initials: 'CU', role: 'Advocate',                   personality: 'Enthusiastic' },
-  { id: 'negative_rep',   name: 'Detractor User',             group: 'customer',    initials: 'DU', role: 'Skeptic',                    personality: 'Critical' },
-  { id: 'neutral_rep',    name: 'Average User',               group: 'customer',    initials: 'AU', role: 'Mainstream',                 personality: 'Balanced' },
+  { id: 'positive_rep',   name: 'Champion User',              group: 'customer',    initials: 'CU', role: 'Advocate',                   personality: 'Enthusiastic', avatar: posCustImg },
+  { id: 'negative_rep',   name: 'Detractor User',             group: 'customer',    initials: 'DU', role: 'Skeptic',                    personality: 'Critical', avatar: negCustImg },
+  { id: 'neutral_rep',    name: 'Average User',               group: 'customer',    initials: 'AU', role: 'Mainstream',                 personality: 'Balanced', avatar: neutCustImg },
   // Adversarial — IDs must match backend exactly
-  { id: 'devils_advocate',name: "Devil's Advocate",           group: 'adversarial', initials: 'DA', role: 'Contrarian',                 personality: 'Challenger' },
-  { id: 'bias_detector',  name: 'Bias Detector',              group: 'adversarial', initials: 'BD', role: 'Neutrality',                 personality: 'Objective' },
-  { id: 'governance',     name: 'Governance Auditor',         group: 'adversarial', initials: 'GA', role: 'Policy',                     personality: 'Strict' },
+  { id: 'devils_advocate',name: "Devil's Advocate",           group: 'adversarial', initials: 'DA', role: 'Contrarian',                 personality: 'Challenger', avatar: devilsImg },
+  { id: 'bias_detector',  name: 'Bias Detector',              group: 'adversarial', initials: 'BD', role: 'Neutrality',                 personality: 'Objective', avatar: biasImg },
+  { id: 'governance',     name: 'Governance Auditor',         group: 'adversarial', initials: 'GA', role: 'Policy',                     personality: 'Strict', avatar: govImg },
 ];
 
 const ANALYSTS = [
@@ -63,6 +78,7 @@ export function DebatePage() {
   const [feed, setFeed] = useState<any[]>([]);
   const [biasScores, setBiasScores] = useState<Record<string, number>>({});
   const [agentPicks, setAgentPicks] = useState<Record<string, string>>({});
+  const [liveRisks, setLiveRisks] = useState({ high: 0, medium: 0, low: 0 });
   
   const [verdictData, setVerdictData] = useState<any>(null);
   const [showVerdict, setShowVerdict] = useState(false);
@@ -220,6 +236,18 @@ export function DebatePage() {
           ...prev,
           [agentId]: Math.max(10, Math.min(90, (prev[agentId] || 50) + (Math.random() - 0.5) * 4))
         }));
+
+        // Live Risk Extraction
+        if (agentId === 'governance' || agentId === 'devils_advocate') {
+          const text = chunk.toUpperCase();
+          if (text.includes('CRITICAL') || text.includes('HIGH RISK')) {
+            setLiveRisks(prev => ({ ...prev, high: prev.high + 1 }));
+          } else if (text.includes('MEDIUM') || text.includes('WARNING')) {
+            setLiveRisks(prev => ({ ...prev, medium: prev.medium + 1 }));
+          } else if (text.includes('LOW') || text.includes('MINOR')) {
+            setLiveRisks(prev => ({ ...prev, low: prev.low + 1 }));
+          }
+        }
       }
     }
 
@@ -270,6 +298,34 @@ export function DebatePage() {
           const normalized = conf <= 1 ? conf * 100 : conf;
           setBiasScores(prev => ({ ...prev, [agentId]: Math.round(normalized * 10) / 10 }));
         }
+
+        // --- ENHANCED LIVE RISK EXTRACTION ---
+        const riskSources = [
+          ...(parsedOut.critical_findings || []),
+          ...(parsedOut.governance_red_flags || []),
+          ...(parsedOut.compliance_violations || []),
+          ...(parsedOut.risk_awareness || []),
+          ...(parsedOut.risk_signals || [])
+        ];
+
+        if (riskSources.length > 0) {
+          setLiveRisks(prev => {
+            let h = 0, m = 0, l = 0;
+            riskSources.forEach((r: any) => {
+              const text = (typeof r === 'string' ? r : (r.finding || r.flag || r.risk || r.their_claim || '')).toUpperCase();
+              const severity = (r.severity || r.exposure_level || '').toUpperCase();
+              
+              if (severity === 'CRITICAL' || severity === 'HIGH' || severity === 'ABSOLUTE' || text.includes('CRITICAL') || text.includes('HIGH RISK')) h++;
+              else if (severity === 'MEDIUM' || text.includes('MEDIUM') || text.includes('WARNING')) m++;
+              else l++;
+            });
+            return {
+              high: Math.max(prev.high, h),
+              medium: Math.max(prev.medium, m),
+              low: Math.max(prev.low, l)
+            };
+          });
+        }
       }
 
       // If it's the moderator completing the final synthesis, save verdict
@@ -299,6 +355,7 @@ export function DebatePage() {
             governance_flags:         parsed.governance_flags || [],
             conditions_before_signing: parsed.conditions_before_signing || [],
             supporting_agents:        sortedEvals.length,
+            most_influential_agent:   parsed.most_influential_agent || '',
           });
           setTimeout(() => setShowVerdict(true), 3000);
         }
@@ -609,9 +666,9 @@ export function DebatePage() {
           confidence={liveConfidence}
           supportingAgents={supportingCount}
           risks={{
-            high: verdictData?.risk_register?.filter((r: any) => r.severity === 'HIGH').length || 0,
-            medium: verdictData?.risk_register?.filter((r: any) => r.severity === 'MEDIUM').length || 0,
-            low: verdictData?.risk_register?.filter((r: any) => r.severity === 'LOW').length || 0
+            high: verdictData?.risk_register?.filter((r: any) => r.severity === 'HIGH' || r.severity === 'CRITICAL').length || liveRisks.high,
+            medium: verdictData?.risk_register?.filter((r: any) => r.severity === 'MEDIUM').length || liveRisks.medium,
+            low: verdictData?.risk_register?.filter((r: any) => r.severity === 'LOW').length || liveRisks.low
           }}
           topFindings={verdictData?.evaluations?.map((e: any) => e.justification).slice(0, 2) || ['Extracting insights live...']}
           activityFeed={feed}

@@ -53,12 +53,24 @@ export function AgentCardCompact({
       <div className="flex items-center gap-3">
         {/* Avatar */}
         <motion.div
-          className="w-10 h-10 rounded-full flex items-center justify-center text-[12px] font-bold flex-shrink-0"
-          style={{ background: c.bg, color: c.text }}
+          className="w-10 h-10 rounded-full flex items-center justify-center text-[12px] font-bold flex-shrink-0 overflow-hidden border"
+          style={{ 
+            background: c.bg, 
+            color: c.text,
+            borderColor: isActive ? c.border : 'rgba(255,255,255,0.05)'
+          }}
           animate={isActive ? { scale: [1, 1.06, 1] } : { scale: 1 }}
           transition={{ duration: 2, repeat: Infinity }}
         >
-          {agent.initials}
+          {agent.avatar ? (
+            <img 
+              src={agent.avatar} 
+              alt={agent.name} 
+              className={`w-full h-full object-cover transition-all duration-700 ${!isActive ? 'grayscale contrast-125 brightness-75 opacity-50' : 'grayscale-0 contrast-100 brightness-100 opacity-100'}`}
+            />
+          ) : (
+            agent.initials
+          )}
         </motion.div>
 
         <div className="flex-1 min-w-0">
