@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 
 interface StreamingTextProps {
@@ -11,7 +11,7 @@ interface StreamingTextProps {
 export function StreamingText({ text, speed = 8, className = '', onComplete }: StreamingTextProps) {
   const [displayed, setDisplayed] = useState('');
   const prevTextRef = useRef('');
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const timerRef = useRef<any>(null);
 
   useEffect(() => {
     if (!text.startsWith(prevTextRef.current) && prevTextRef.current.length > 0) {

@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { StreamingText, BiasBar } from '../common';
 import type { Agent } from '../../data/mockData';
 

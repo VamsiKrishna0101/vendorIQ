@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Play, Loader2, Users, Shield, LayoutGrid, FileText, Cpu } from 'lucide-react';
 import { UploadZone } from '../../components/upload/UploadZone';
 import { useToast } from '../../components/common/Toast';

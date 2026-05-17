@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Search, Play, Plus, Loader2 } from 'lucide-react';
 import { StatusBadge, ConfidenceScore, EmptyState } from '../../components/common';
-import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../components/common/Toast';
 import api from '../../api';
 

@@ -13,7 +13,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'https://vendoriq-55658924621.us-west2.run.app',
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/api/, ''),
       },

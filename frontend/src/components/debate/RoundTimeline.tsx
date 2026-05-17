@@ -24,7 +24,6 @@ export function RoundTimeline({ currentPhase }: RoundTimelineProps) {
       {PHASES.map((phase, i) => {
         const isDone = i < currentIndex;
         const isActive = i === currentIndex;
-        const isPending = i > currentIndex;
 
         return (
           <div key={phase.id} className="flex items-center flex-1">

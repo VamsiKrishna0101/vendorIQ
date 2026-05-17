@@ -7,9 +7,7 @@ import { RoundTimeline, type Phase } from '../../components/debate/RoundTimeline
 import { RoundTransition } from '../../components/debate/RoundTransition';
 import { AgentCardCompact } from '../../components/debate/AgentCardCompact';
 import { InsightPanel } from '../../components/debate/InsightPanel';
-import { StreamingText } from '../../components/common';
 import { useAuth } from '../../contexts/AuthContext';
-import api from '../../api';
 
 // Avatars
 import cfoImg from '../../assets/cfo.png';
@@ -104,8 +102,8 @@ export function DebatePage() {
 
     // Choose endpoint based on mode
     const url = isReplay
-      ? `http://localhost:8000/debate/replay/${active_id}`   // replay: no token needed, instant dump
-      : `http://localhost:8000/debate/stream/${active_id}?token=${token}`; // live stream
+      ? `https://vendoriq-55658924621.us-west2.run.app/debate/replay/${active_id}`   // replay: no token needed, instant dump
+      : `https://vendoriq-55658924621.us-west2.run.app/debate/stream/${active_id}?token=${token}`; // live stream
 
     const sse = new EventSource(url);
     eventSourceRef.current = sse;
