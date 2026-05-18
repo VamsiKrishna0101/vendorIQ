@@ -6,7 +6,7 @@
 
 **The AI Boardroom That Never Lets Politics Win Over Evidence.**
 
-[![Live Demo](https://vendor-iq-ten.vercel.app/)](#)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-View%20Here-E8A930?style=for-the-badge&logo=vercel&logoColor=black)](https://vendor-iq-ten.vercel.app/)
 [![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev)
 [![FastAPI](https://img.shields.io/badge/FastAPI-Latest-009688?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com)
 [![LangGraph](https://img.shields.io/badge/LangGraph-Latest-1C3C3C?style=for-the-badge&logo=langchain&logoColor=white)](https://langchain-ai.github.io/langgraph)
