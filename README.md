@@ -23,7 +23,7 @@
 
 VendorIQ is an enterprise-grade multi-agent AI platform that simulates a live executive boardroom debate to evaluate vendors and deliver evidence-based procurement decisions in minutes, not weeks.
 
-Upload vendor proposals. Watch 13 specialized AI agents — CFO, CTO, Legal, Customer Reps, Devil's Advocate, Governance Auditor — debate across 3 structured rounds with live bias detection. Get a ranked, auditable verdict instantly.
+Upload vendor proposals. Watch 13 specialized AI agents — CFO, CTO, Legal, Customer Reps, Devil's Advocate, Governance Auditor — debate across 3 structured rounds with live bias detection. Get a ranked verdict with an audit trail, risk register, and minority dissent.
 
 ---
 
@@ -55,6 +55,29 @@ Moderator — Synthesizes all rounds, applies stakeholder weights
         ↓
 Ranked Verdict with audit trail, risk register, minority dissent
 ```
+
+---
+
+## Screenshots
+
+<div align="center">
+
+### Upload Interface
+<img src="v1.png" alt="VendorIQ Upload Interface" width="100%"/>
+
+### Live Debate Streaming
+<img src="v2.png" alt="VendorIQ Live Debate" width="100%"/>
+
+### Agent Perspectives
+<img src="v3.png" alt="VendorIQ Agent Perspectives" width="100%"/>
+
+### Decision Results
+<img src="v5.png" alt="VendorIQ Decision Results" width="100%"/>
+
+### Audit Trail & Verdict
+<img src="v6.png" alt="VendorIQ Audit Trail" width="100%"/>
+
+</div>
 
 ---
 
